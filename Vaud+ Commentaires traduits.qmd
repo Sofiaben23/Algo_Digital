@@ -183,12 +183,8 @@ tokens_positif <- subset_comments %>%
 
 # Vous pouvez maintenant manipuler les tokens ou les combiner selon vos besoins
 # Par exemple, pour les combiner en un seul dataframe :
-tokens_combines <- bind_rows(tokens_negatif, tokens_positif)
-view(tokens_combines)
+
 ````
-
-
-
 
 ##N-gram (2 ou 3 gram)
 ##Tag Cloud (passer le texte en minuscule)
