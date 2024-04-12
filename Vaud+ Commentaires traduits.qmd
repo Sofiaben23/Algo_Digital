@@ -4,23 +4,138 @@ format: html
 editor: visual
 ---
 
-## Quarto
-
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
-
-## Running Code
-
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
-
 ```{r}
-1 + 1
+library(tidyverse)
+library(data.table)
+library(ggplot2)
+library(lubridate)
+library(readxl)
+library(knitr)
+library(rmarkdown)
+library(stringr)
+library(forcats)
+library(here)
+library(plotly)
 ```
 
-You can add options to executable code like this
+#Visualize data
 
 ```{r}
-#| echo: false
-2 * 2
+#convert the excel into a csv file
+#comm_traduits_xlsx <- read_excel("data/Booking VD traduit.xlsx")
+#write.csv(comm_traduits_xlsx, "data/Booking VD traduit.csv", row.names = FALSE)
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+```{r}
+comm_booking <- read.csv("data/Booking VD traduit.csv")
+```
+
+##Valeurs manquantes
+```{r}
+# Compter le nombre de NA dans la colonne 'Contenu.positif'
+nombre_de_na1 <- sum(is.na(comm_booking$Contenu.positif))
+nombre_de_na2 <- sum(is.na(comm_booking$Contenu.négatif))
+
+# Afficher le nombre de NA
+print(nombre_de_na1)
+print(nombre_de_na2)
+
+```
+
+
+##Types de voyageurs qui laissent des commentaires
+```{r}
+# Créer un résumé des données
+commentaires_par_type <- comm_booking %>%
+  group_by(Type) %>%
+  summarise(Nombre_de_commentaires = n()) %>%
+  arrange(desc(Nombre_de_commentaires))
+
+# Calculer le nombre total de commentaires
+total_commentaires <- sum(commentaires_par_type$Nombre_de_commentaires)
+
+# Ajouter une colonne de pourcentages
+commentaires_par_type <- commentaires_par_type %>%
+  mutate(Pourcentage = (Nombre_de_commentaires / total_commentaires) * 100)
+
+ggplot(commentaires_par_type, aes(x = reorder(Type, -Pourcentage), y = Pourcentage, fill = Type)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(x = "Type", y = "Pourcentage de Commentaires", title = "Pourcentage de Commentaires par Type de voyageurs") +
+  coord_flip()  # Rend les étiquettes des pays plus lisibles
+
+```
+##D'où viennent les voyageurs qui laissent le plus de commentaires
+
+*Top 10*
+
+```{r}
+
+# Compter le nombre de commentaires par pays
+commentaires_par_pays <- comm_booking %>%
+  group_by(Pays) %>%
+  summarise(Nombre_de_commentaires = n())
+
+# Calculer le nombre total de commentaires
+total_commentaires <- sum(commentaires_par_pays$Nombre_de_commentaires)
+
+# Ajouter une colonne de pourcentages
+commentaires_par_pays <- commentaires_par_pays %>%
+  mutate(Pourcentage = (Nombre_de_commentaires / total_commentaires) * 100)
+
+# Sélectionner les 10 pays principaux
+top_pays <- commentaires_par_pays %>%
+  arrange(desc(Nombre_de_commentaires)) %>%
+  top_n(10, Nombre_de_commentaires)
+
+# Créer un graphique à barres montrant le pourcentage pour les 10 pays principaux
+ggplot(top_pays, aes(x = reorder(Pays, -Pourcentage), y = Pourcentage, fill = Pays)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(x = "Pays", y = "Pourcentage de Commentaires", title = "Pourcentage de Commentaires par Pays pour les 10 Pays Principaux") +
+  coord_flip()  # Rend les étiquettes des pays plus lisibles
+```
+##Pourcentage de chaque type de voyageur, en permettant un zoom par pays
+
+```{r}
+# Calculer le nombre de commentaires par type de voyageur et par pays
+type_voyageur_par_pays <- comm_booking %>%
+  group_by(Pays, Type) %>%
+  summarise(Nombre_de_commentaires = n(), .groups = 'drop')
+
+# Identifier les 10 pays avec le plus grand nombre de commentaires
+top_pays <- type_voyageur_par_pays %>%
+  group_by(Pays) %>%
+  summarise(Total_commentaires = sum(Nombre_de_commentaires)) %>%
+  top_n(10, Total_commentaires) %>%
+  pull(Pays)
+
+# Filtrer le dataset pour ne garder que les 10 premiers pays
+data_top_pays <- type_voyageur_par_pays %>%
+  filter(Pays %in% top_pays)
+
+# Calculer le total de commentaires pour ces pays
+total_par_pays <- data_top_pays %>%
+  group_by(Pays) %>%
+  summarise(Total_commentaires = sum(Nombre_de_commentaires), .groups = 'drop')
+
+# Joindre les données pour obtenir les pourcentages
+data_pourcentage <- data_top_pays %>%
+  inner_join(total_par_pays, by = "Pays") %>%
+  mutate(Pourcentage = (Nombre_de_commentaires / Total_commentaires) * 100)
+
+# Créer le graphique interactif pour les 10 premiers pays
+ggplot(data_pourcentage, aes(x = Pays, y = Pourcentage, fill = Type, text = paste("Type:", Type, "<br>Pourcentage:", round(Pourcentage, 2), "%"))) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_minimal() +
+  labs(x = "Pays", y = "Pourcentage", title = "Pourcentage de chaque type de voyageurs par pays") +
+  coord_flip()
+
+```
+#Pretraitement de texte
+```{r}
+
+```
+
+
+
