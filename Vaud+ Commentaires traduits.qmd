@@ -125,17 +125,72 @@ data_pourcentage <- data_top_pays %>%
   mutate(Pourcentage = (Nombre_de_commentaires / Total_commentaires) * 100)
 
 # Créer le graphique interactif pour les 10 premiers pays
-ggplot(data_pourcentage, aes(x = Pays, y = Pourcentage, fill = Type, text = paste("Type:", Type, "<br>Pourcentage:", round(Pourcentage, 2), "%"))) +
+ggplot(data_pourcentage, aes(x = Pays, y = Pourcentage, fill = Type))+
   geom_bar(stat = "identity", position = "fill") +
-  theme_minimal() +
-  labs(x = "Pays", y = "Pourcentage", title = "Pourcentage de chaque type de voyageurs par pays") +
-  coord_flip()
+  theme_minimal()+
+  labs(x = "Pays", y = "Pourcentage", title = "Pourcentage de chaque type de voyageurs par pays") 
+
 
 ```
-#Pretraitement de texte
 ```{r}
+data_pourcentage_plot <- data_pourcentage %>% 
+  ggplot(aes(x = Pays, y = Pourcentage, fill = Type)) + 
+  geom_bar(stat = "identity") +
+  theme_minimal()
+data_pourcentage_plot
 
+ggplotly(data_pourcentage_plot)
+
+tmp_data <- tibble(xax = c(1, 2, 3, 4), yax = c(2, -1, 0, 1))
+tmp_data_plot <- tmp_data %>% 
+  ggplot(aes(x = xax, y = yax)) + 
+  geom_line()
+tmp_data_plot
+
+tmp_data_plot %>% ggplotly()
+
+plot_ly(data = data_pourcentage, x = ~Pays, y=~Pourcentage, type = "bar", color = ~Type)
 ```
 
+#Pretraitement de texte
+1. Mettre tous les mots en minuscule
+2. Enlever toutes la ponctuations
+3. Faire des n-gram (1,2 et 3)
+4. Faire une intersection entre les mots/listes de mots les plus utilisés selon les types
+5. Faire des clusters: quelles expressions sont les plus utilisées selon les types
+- ex: mots utilisés chez les couples - intersection avec les autres types de voyageurs
+```{r}
+#give an index to each observation
+comm_booking <- comm_booking %>%
+  mutate(id = row_number())
+```
 
+*Nouveau data set pour la tokenisation*
+```{r}
+# Créer un sous-ensemble de données avec seulement certaines colonnes
+subset_comments <- select(comm_booking, id, Contenu.positif, Contenu.négatif)
+```
+
+```{r}
+library(tidytext)
+# Tokenisation de la colonne Contenu.négatif
+tokens_negatif <- subset_comments %>%
+  unnest_tokens(word, Contenu.négatif, token = "words")
+
+# Tokenisation de la colonne Contenu.positif
+tokens_positif <- subset_comments %>%
+  unnest_tokens(word, Contenu.positif, token = "words")
+
+# Vous pouvez maintenant manipuler les tokens ou les combiner selon vos besoins
+# Par exemple, pour les combiner en un seul dataframe :
+tokens_combines <- bind_rows(tokens_negatif, tokens_positif)
+view(tokens_combines)
+````
+
+
+
+
+##N-gram (2 ou 3 gram)
+##Tag Cloud (passer le texte en minuscule)
+##Adjective noun pairs
 
