@@ -171,22 +171,77 @@ comm_booking <- comm_booking %>%
 subset_comments <- select(comm_booking, id, Contenu.positif, Contenu.négatif)
 ```
 
+*Tokenisation 1-gram sans les stopwords*
 ```{r}
 library(tidytext)
+library(tm)
+
+french_stopwords <- stopwords("french")
+
 # Tokenisation de la colonne Contenu.négatif
 tokens_negatif <- subset_comments %>%
   unnest_tokens(word, Contenu.négatif, token = "words")
 
-# Tokenisation de la colonne Contenu.positif
-tokens_positif <- subset_comments %>%
-  unnest_tokens(word, Contenu.positif, token = "words")
 
-# Vous pouvez maintenant manipuler les tokens ou les combiner selon vos besoins
-# Par exemple, pour les combiner en un seul dataframe :
+tokens_negatif$Contenu.positif <- NULL
 
-````
+# Retirer les stopwords français
+tokens_negatif <- tokens_negatif %>%
+  filter(!word %in% french_stopwords)
+```
 
-##N-gram (2 ou 3 gram)
+
+##2-gram
+```{r}
+#bigram negatif
+bigram_negatif <- subset_comments %>%
+  unnest_tokens(bigram, Contenu.négatif, token = "ngrams", n=2)
+bigram_negatif$Contenu.positif<-NULL
+
+# Séparation des bigrams en deux colonnes
+bigram_negatif <- bigram_negatif %>%
+  separate(bigram, into = c("word1", "word2"), sep = " ")
+
+# Filtrage des bigrams pour enlever ceux contenant un stopword
+bigram_negatif <- bigram_negatif %>%
+  filter(!word1 %in% french_stopwords & !word2 %in% french_stopwords)
+
+# Recombinaison des mots pour reformer les bigrams nettoyés
+bigram_negatif <- bigram_negatif %>%
+  unite(bigram, word1, word2, sep = " ")
+
+count_negatif_bigram <- bigram_negatif%>%
+  count(bigram, sort = TRUE)
+
+print(count_negatif_bigram)
+view(count_negatif_bigram)
+```
+
+##3-gram
+```{r}
+#trigram negatif
+trigram_negatif <- subset_comments %>%
+  unnest_tokens(trigram, Contenu.négatif, token = "ngrams", n=3)
+trigram_negatif$Contenu.positif<-NULL
+
+# Séparation des trigrams en trois mots
+trigram_negatif <- trigram_negatif %>%
+  separate(trigram, into = c("word1", "word2", "word3"), sep = " ", extra = "merge")
+
+# Filtrage pour enlever les lignes contenant des stopwords dans l'un des trois mots
+trigram_negatif <- trigram_negatif %>%
+  filter(!word1 %in% french_stopwords & !word2 %in% french_stopwords & !word3 %in% french_stopwords)
+
+# Recombinaison des mots pour reformer les trigrams nettoyés
+trigram_negatif <- trigram_negatif %>%
+  unite(trigram, word1, word2, word3, sep = " ")
+
+count_negatif_trigram <- trigram_negatif%>%
+  count(trigram, sort = TRUE)
+View(count_negatif_trigram)
+
+```
+
 ##Tag Cloud (passer le texte en minuscule)
 ##Adjective noun pairs
 
