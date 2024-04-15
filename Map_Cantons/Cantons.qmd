@@ -9,7 +9,6 @@ library(sf)
 library(terra)
 library(dplyr)
 library(spData)
-library(spDataLarge)
 ```
 
 ```{r}
@@ -21,11 +20,33 @@ install.packages("tmap", repos = c("https://r-tmap.r-universe.dev",
 library(tmap)    # for static and interactive maps
 library(leaflet) # for interactive maps
 library(ggplot2) # tidyverse data visualization package
-library(readxl)
+library(here)
+library(dplyr)
+library(tidyr)
 ```
 
 ```{r}
-Cantons <- read_excel("Map_Cantons/georef-switzerland-kanton.xlsx")
+Cantons <- read.csv(here("Map_Cantons", "dataset", "georef-switzerland-kanton.csv"), sep = ";")
+```
 
-head(Cantons)
+```{r}
+map_data <- Cantons %>% 
+  select(Geo.Point, Official.Name.Kanton)
+
+map_data <- na.omit(map_data)
+
+map_data <- map_data %>%
+  separate(Geo.Point, into = c("latitude", "longitude"), sep = ",", convert = TRUE)
+
+```
+
+```{r}
+map <- leaflet() %>%
+  addTiles() %>%
+  addMarkers(data = map_data, 
+             lat = ~latitude, 
+             lng = ~longitude,
+             popup = ~Official.Name.Kanton)
+
+map
 ```
