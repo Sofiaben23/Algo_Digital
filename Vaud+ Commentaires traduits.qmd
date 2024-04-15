@@ -30,6 +30,13 @@ library(plotly)
 comm_booking <- read.csv("data/Booking VD traduit.csv")
 ```
 
+```{r}
+#give an index to each observation
+comm_booking <- comm_booking %>%
+  mutate(id = row_number()) %>%
+  select(id, everything())
+```
+
 ##Valeurs manquantes
 ```{r}
 # Compter le nombre de NA dans la colonne 'Contenu.positif'
@@ -45,8 +52,13 @@ print(nombre_de_na2)
 
 ##Types de voyageurs qui laissent des commentaires
 ```{r}
+# Filtrer les lignes où les commentaires positifs et négatifs sont simultanément vides
+comm_booking1 <- comm_booking %>%
+  filter(!(is.na(Contenu.positif) | Contenu.positif == "") | 
+         !(is.na(Contenu.négatif) | Contenu.négatif == ""))
+
 # Créer un résumé des données
-commentaires_par_type <- comm_booking %>%
+commentaires_par_type <- comm_booking1 %>%
   group_by(Type) %>%
   summarise(Nombre_de_commentaires = n()) %>%
   arrange(desc(Nombre_de_commentaires))
@@ -65,6 +77,8 @@ ggplot(commentaires_par_type, aes(x = reorder(Type, -Pourcentage), y = Pourcenta
   coord_flip()  # Rend les étiquettes des pays plus lisibles
 
 ```
+
+
 ##D'où viennent les voyageurs qui laissent le plus de commentaires
 
 *Top 10*
@@ -124,18 +138,328 @@ data_pourcentage <- data_top_pays %>%
   inner_join(total_par_pays, by = "Pays") %>%
   mutate(Pourcentage = (Nombre_de_commentaires / Total_commentaires) * 100)
 
-# Créer le graphique interactif pour les 10 premiers pays
-ggplot(data_pourcentage, aes(x = Pays, y = Pourcentage, fill = Type, text = paste("Type:", Type, "<br>Pourcentage:", round(Pourcentage, 2), "%"))) +
-  geom_bar(stat = "identity", position = "fill") +
-  theme_minimal() +
-  labs(x = "Pays", y = "Pourcentage", title = "Pourcentage de chaque type de voyageurs par pays") +
-  coord_flip()
+data_pourcentage_plot <- data_pourcentage %>% 
+  ggplot(aes(x = Pays, y = Pourcentage, fill = Type)) + 
+  geom_bar(stat = "identity") +
+  theme_minimal()
+
+
+plot_ly(data = data_pourcentage, x = ~Pays, y=~Pourcentage, type = "bar", color = ~Type)
+```
+
+
+
+#Pretraitement de texte
+1. Mettre tous les mots en minuscule
+2. Enlever toutes la ponctuations
+3. Faire des n-gram (1,2 et 3)
+4. Faire une intersection entre les mots/listes de mots les plus utilisés selon les types
+5. Faire des clusters: quelles expressions sont les plus utilisées selon les types
+- ex: mots utilisés chez les couples - intersection avec les autres types de voyageurs
+
+
+*Nouveau data set pour la tokenisation*
+```{r}
+# Créer un sous-ensemble de données avec seulement certaines colonnes
+subset_comments <- select(comm_booking, id, Contenu.positif, Contenu.négatif)
+```
+
+##Tokenisation 1-gram sans les stopwords
+*Contenu négatif*
+```{r}
+library(tidytext)
+library(tm)
+
+french_stopwords <- stopwords("french")
+
+# Tokenisation de la colonne Contenu.négatif
+tokens_negatif <- subset_comments %>%
+  unnest_tokens(word, Contenu.négatif, token = "words")
+
+
+tokens_negatif$Contenu.positif <- NULL
+
+# Retirer les stopwords français
+tokens_negatif <- tokens_negatif %>%
+  filter(!word %in% french_stopwords)
+```
+
+*Contenu positif*
+```{r}
+tokens_positif <- subset_comments%>%
+  unnest_tokens(word, Contenu.positif, token="words")
+
+tokens_positif$Contenu.négatif<- NULL
+
+# Retirer les stopwords français
+tokens_positif <- tokens_positif %>%
+  filter(!word %in% french_stopwords)
+```
+
+##2-gram
+*Contenu négatif*
+```{r}
+#bigram negatif
+bigram_negatif <- subset_comments %>%
+  unnest_tokens(bigram, Contenu.négatif, token = "ngrams", n=2)
+bigram_negatif$Contenu.positif<-NULL
+
+# Séparation des bigrams en deux colonnes
+bigram_negatif <- bigram_negatif %>%
+  separate(bigram, into = c("word1", "word2"), sep = " ")
+
+# Filtrage des bigrams pour enlever ceux contenant un stopword
+bigram_negatif <- bigram_negatif %>%
+  filter(!word1 %in% french_stopwords & !word2 %in% french_stopwords)
+
+# Recombinaison des mots pour reformer les bigrams nettoyés
+bigram_negatif <- bigram_negatif %>%
+  unite(bigram, word1, word2, sep = " ")
+
+count_negatif_bigram <- bigram_negatif%>%
+  count(bigram, sort = TRUE)
+
+print(count_negatif_bigram)
+```
+
+*Contenu positif*
+```{r}
+#bigram positif
+bigram_positif <- subset_comments %>%
+  unnest_tokens(bigram, Contenu.positif, token = "ngrams", n=2)
+bigram_positif$Contenu.négatif<-NULL
+
+# Séparation des bigrams en deux colonnes
+bigram_positif <- bigram_positif %>%
+  separate(bigram, into = c("word1", "word2"), sep = " ")
+
+# Filtrage des bigrams pour enlever ceux contenant un stopword
+bigram_positif <- bigram_positif %>%
+  filter(!word1 %in% french_stopwords & !word2 %in% french_stopwords)
+
+# Recombinaison des mots pour reformer les bigrams nettoyés
+bigram_positif <- bigram_positif %>%
+  unite(bigram, word1, word2, sep = " ")
+
+count_positif_bigram <- bigram_positif%>%
+  count(bigram, sort = TRUE)
+
+print(count_positif_bigram)
+```
+
+
+##3-gram
+*Contenu négatif*
+```{r}
+#trigram negatif
+trigram_negatif <- subset_comments %>%
+  unnest_tokens(trigram, Contenu.négatif, token = "ngrams", n=3)
+trigram_negatif$Contenu.positif<-NULL
+
+# Séparation des trigrams en trois mots
+trigram_negatif <- trigram_negatif %>%
+  separate(trigram, into = c("word1", "word2", "word3"), sep = " ", extra = "merge")
+
+# Filtrage pour enlever les lignes contenant des stopwords dans l'un des trois mots
+trigram_negatif <- trigram_negatif %>%
+  filter(!word1 %in% french_stopwords & !word2 %in% french_stopwords & !word3 %in% french_stopwords)
+
+# Recombinaison des mots pour reformer les trigrams nettoyés
+trigram_negatif <- trigram_negatif %>%
+  unite(trigram, word1, word2, word3, sep = " ")
+
+count_negatif_trigram <- trigram_negatif%>%
+  count(trigram, sort = TRUE)
+
+print(count_negatif_trigram)
 
 ```
-#Pretraitement de texte
+
+*Contenu positif*
+```{r}
+#trigram positif
+trigram_positif <- subset_comments %>%
+  unnest_tokens(trigram, Contenu.positif, token = "ngrams", n=3)
+trigram_positif$Contenu.négatif <-NULL
+
+# Séparation des trigrams en trois mots
+trigram_positif <- trigram_positif %>%
+  separate(trigram, into = c("word1", "word2", "word3"), sep = " ", extra = "merge")
+
+# Filtrage pour enlever les lignes contenant des stopwords dans l'un des trois mots
+trigram_positif <- trigram_positif %>%
+  filter(!word1 %in% french_stopwords & !word2 %in% french_stopwords & !word3 %in% french_stopwords)
+
+# Recombinaison des mots pour reformer les trigrams nettoyés
+trigram_positif <- trigram_positif %>%
+  unite(trigram, word1, word2, word3, sep = " ")
+
+count_positif_trigram <- trigram_positif %>%
+  count(trigram, sort = TRUE)
+
+print(count_positif_trigram)
+```
+
+##4-gram
+*Contenu négatif*
+```{r}
+fourgram_negatif <- subset_comments %>%
+  unnest_tokens(fourgram, Contenu.négatif, token = "ngrams", n=4)
+fourgram_negatif$Contenu.positif<-NULL
+
+# Séparation des trigrams en trois mots
+fourgram_negatif <- fourgram_negatif %>%
+  separate(fourgram, into = c("word1", "word2", "word3", "word4"), sep = " ", extra = "merge")
+
+# Filtrage pour enlever les lignes contenant des stopwords dans l'un des trois mots
+fourgram_negatif <- fourgram_negatif %>%
+  filter(!word1 %in% french_stopwords & !word2 %in% french_stopwords & !word3 %in% french_stopwords & !word4 %in% french_stopwords)
+
+# Recombinaison des mots pour reformer les trigrams nettoyés
+fourgram_negatif <- fourgram_negatif %>%
+  unite(fourgram, word1, word2, word3, word4, sep = " ")
+
+count_negatif_fourgram <- fourgram_negatif%>%
+  count(fourgram, sort = TRUE)
+
+print(count_negatif_fourgram)
+```
+
+*Contenu positif*
+```{r}
+fourgram_positif <- subset_comments %>%
+  unnest_tokens(fourgram, Contenu.positif, token = "ngrams", n=4)
+fourgram_positif$Contenu.négatif<-NULL
+
+# Séparation des trigrams en trois mots
+fourgram_positif <- fourgram_positif %>%
+  separate(fourgram, into = c("word1", "word2", "word3", "word4"), sep = " ", extra = "merge")
+
+# Filtrage pour enlever les lignes contenant des stopwords dans l'un des trois mots
+fourgram_positif <- fourgram_positif %>%
+  filter(!word1 %in% french_stopwords & !word2 %in% french_stopwords & !word3 %in% french_stopwords & !word4 %in% french_stopwords)
+
+# Recombinaison des mots pour reformer les trigrams nettoyés
+fourgram_positif <- fourgram_positif %>%
+  unite(fourgram, word1, word2, word3, word4, sep = " ")
+
+count_positif_fourgram <- fourgram_positif%>%
+  count(fourgram, sort = TRUE)
+
+print(count_positif_fourgram)
+```
+
+#Supprimer les faux commentaires négatifs
+
+Code pour nettoyer la ponctuation et normaliser les espaces:
+```{r}
+# Nettoyer la ponctuation et normaliser les espaces
+comm_booking <- comm_booking %>%
+  mutate(
+    Contenu.positif = str_replace_all(Contenu.positif, "[[:punct:]]", " ") %>%
+                      str_replace_all(" +", " "),  # Remplacer multiples espaces par un seul espace
+    Contenu.négatif = str_replace_all(Contenu.négatif, "[[:punct:]]", " ") %>%
+                      str_replace_all(" +", " ")
+  )
+
+```
+
+```{r}
+# Transformer les lettres en minuscules pour les colonnes spécifiées
+comm_booking <- comm_booking %>%
+  mutate(Contenu.positif = tolower(Contenu.positif),
+         Contenu.négatif = tolower(Contenu.négatif))
+```
+
+*Supprimer les "rien"*
+
+```{r}
+# Remplacer les cases contenant "rien" par NA dans 'Contenu.negatif'
+comm_booking <- comm_booking %>%
+  mutate(Contenu.négatif = case_when(
+    str_detect(Contenu.négatif, fixed("rien")) ~ NA_character_,
+    TRUE ~ Contenu.négatif
+  ))
+
+```
+
+*Supprimer les "tout va bien"*
 ```{r}
 
 ```
 
+##Travailler sur le dataset complet avec les 3-gram
+
+On remarque qu'il est plus pertinent de travailler avec des 3-gram pour les contenu des colonnes de commentaires.
+
+```{r}
+#créer des trigrammes à partir des colonnes de texte
+comm_booking_trigrams <- comm_booking %>%
+  unnest_tokens(output = trigram, input = Contenu.positif, token = "ngrams", n = 3) %>%
+  bind_rows(comm_booking %>%
+            unnest_tokens(output = trigram, input = Contenu.négatif, token = "ngrams", n = 3))
+
+```
+
+```{r}
+#Calculez la fréquence des trigrammes par type de client.
+trigram_freq_by_type <- comm_booking_trigrams %>%
+  count(Type, trigram, sort = TRUE) %>%
+  group_by(Type) %>%
+  mutate(freq = n / sum(n))
+
+# Pour identifier les trigrammes distinctifs, comparez la fréquence relative des trigrammes dans chaque groupe
+distinctive_trigrams <- trigram_freq_by_type %>%
+  group_by(trigram) %>%
+  filter(n() > 1) %>%
+  mutate(max_freq = max(freq),
+         is_distinctive = freq == max_freq) %>%
+  filter(is_distinctive) %>%
+  ungroup() %>%
+  arrange(desc(freq))
+
+```
+
+
+###Quel vocabulaire est utilisé par quel type de clientèle
+
+ 
+##Tag Cloud 
+
+##Adjective noun pairs (prend bcp de temps)
+
+```{r}
+library(udpipe)
+```
+
+```{r}
+# Télécharger un modèle de langue française (ou une autre langue appropriée)
+model <- udpipe_download_model(language = "french")
+
+# Charger le modèle
+ud_model <- udpipe_load_model(model$file_model)
+
+# Préparer vos données (exemple ici avec 'Contenu.positif')
+text_data <- data.frame(text = as.character(comm_booking$Contenu.positif), stringsAsFactors = FALSE)
+```
+
+```{r}
+# Appliquer le POS tagging
+tagged_text <- udpipe_annotate(ud_model, x = text_data$text)
+tagged_df <- as.data.frame(tagged_text)
+
+```
+
+```{r}
+# Filtrer les adjectifs et les noms, et les lier
+adj_noun_pairs <- tagged_df %>%
+  filter(upos %in% c("ADJ", "NOUN")) %>%
+  group_by(doc_id, paragraph_id, sentence_id) %>%
+  arrange(doc_id, paragraph_id, sentence_id, token_id) %>%
+  mutate(next_word = lead(lemma), next_pos = lead(upos)) %>%
+  filter(upos == "ADJ" & next_pos == "NOUN") %>%
+  select(adj = lemma, noun = next_word)
+
+```
 
 
