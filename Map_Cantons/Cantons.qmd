@@ -21,7 +21,11 @@ install.packages("tmap", repos = c("https://r-tmap.r-universe.dev",
 library(tmap)    # for static and interactive maps
 library(leaflet) # for interactive maps
 library(ggplot2) # tidyverse data visualization package
+library(readxl)
 ```
 
-```{Cantons <-}
+```{r}
+Cantons <- read_excel("Map_Cantons/georef-switzerland-kanton.xlsx")
+
+head(Cantons)
 ```
