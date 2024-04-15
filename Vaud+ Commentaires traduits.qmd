@@ -125,123 +125,17 @@ data_pourcentage <- data_top_pays %>%
   mutate(Pourcentage = (Nombre_de_commentaires / Total_commentaires) * 100)
 
 # Créer le graphique interactif pour les 10 premiers pays
-ggplot(data_pourcentage, aes(x = Pays, y = Pourcentage, fill = Type))+
+ggplot(data_pourcentage, aes(x = Pays, y = Pourcentage, fill = Type, text = paste("Type:", Type, "<br>Pourcentage:", round(Pourcentage, 2), "%"))) +
   geom_bar(stat = "identity", position = "fill") +
-  theme_minimal()+
-  labs(x = "Pays", y = "Pourcentage", title = "Pourcentage de chaque type de voyageurs par pays") 
-
+  theme_minimal() +
+  labs(x = "Pays", y = "Pourcentage", title = "Pourcentage de chaque type de voyageurs par pays") +
+  coord_flip()
 
 ```
-```{r}
-data_pourcentage_plot <- data_pourcentage %>% 
-  ggplot(aes(x = Pays, y = Pourcentage, fill = Type)) + 
-  geom_bar(stat = "identity") +
-  theme_minimal()
-data_pourcentage_plot
-
-ggplotly(data_pourcentage_plot)
-
-tmp_data <- tibble(xax = c(1, 2, 3, 4), yax = c(2, -1, 0, 1))
-tmp_data_plot <- tmp_data %>% 
-  ggplot(aes(x = xax, y = yax)) + 
-  geom_line()
-tmp_data_plot
-
-tmp_data_plot %>% ggplotly()
-
-plot_ly(data = data_pourcentage, x = ~Pays, y=~Pourcentage, type = "bar", color = ~Type)
-```
-
 #Pretraitement de texte
-1. Mettre tous les mots en minuscule
-2. Enlever toutes la ponctuations
-3. Faire des n-gram (1,2 et 3)
-4. Faire une intersection entre les mots/listes de mots les plus utilisés selon les types
-5. Faire des clusters: quelles expressions sont les plus utilisées selon les types
-- ex: mots utilisés chez les couples - intersection avec les autres types de voyageurs
 ```{r}
-#give an index to each observation
-comm_booking <- comm_booking %>%
-  mutate(id = row_number())
-```
 
-*Nouveau data set pour la tokenisation*
-```{r}
-# Créer un sous-ensemble de données avec seulement certaines colonnes
-subset_comments <- select(comm_booking, id, Contenu.positif, Contenu.négatif)
-```
-
-*Tokenisation 1-gram sans les stopwords*
-```{r}
-library(tidytext)
-library(tm)
-
-french_stopwords <- stopwords("french")
-
-# Tokenisation de la colonne Contenu.négatif
-tokens_negatif <- subset_comments %>%
-  unnest_tokens(word, Contenu.négatif, token = "words")
-
-
-tokens_negatif$Contenu.positif <- NULL
-
-# Retirer les stopwords français
-tokens_negatif <- tokens_negatif %>%
-  filter(!word %in% french_stopwords)
 ```
 
 
-##2-gram
-```{r}
-#bigram negatif
-bigram_negatif <- subset_comments %>%
-  unnest_tokens(bigram, Contenu.négatif, token = "ngrams", n=2)
-bigram_negatif$Contenu.positif<-NULL
-
-# Séparation des bigrams en deux colonnes
-bigram_negatif <- bigram_negatif %>%
-  separate(bigram, into = c("word1", "word2"), sep = " ")
-
-# Filtrage des bigrams pour enlever ceux contenant un stopword
-bigram_negatif <- bigram_negatif %>%
-  filter(!word1 %in% french_stopwords & !word2 %in% french_stopwords)
-
-# Recombinaison des mots pour reformer les bigrams nettoyés
-bigram_negatif <- bigram_negatif %>%
-  unite(bigram, word1, word2, sep = " ")
-
-count_negatif_bigram <- bigram_negatif%>%
-  count(bigram, sort = TRUE)
-
-print(count_negatif_bigram)
-view(count_negatif_bigram)
-```
-
-##3-gram
-```{r}
-#trigram negatif
-trigram_negatif <- subset_comments %>%
-  unnest_tokens(trigram, Contenu.négatif, token = "ngrams", n=3)
-trigram_negatif$Contenu.positif<-NULL
-
-# Séparation des trigrams en trois mots
-trigram_negatif <- trigram_negatif %>%
-  separate(trigram, into = c("word1", "word2", "word3"), sep = " ", extra = "merge")
-
-# Filtrage pour enlever les lignes contenant des stopwords dans l'un des trois mots
-trigram_negatif <- trigram_negatif %>%
-  filter(!word1 %in% french_stopwords & !word2 %in% french_stopwords & !word3 %in% french_stopwords)
-
-# Recombinaison des mots pour reformer les trigrams nettoyés
-trigram_negatif <- trigram_negatif %>%
-  unite(trigram, word1, word2, word3, sep = " ")
-
-count_negatif_trigram <- trigram_negatif%>%
-  count(trigram, sort = TRUE)
-View(count_negatif_trigram)
-
-```
-
-##Tag Cloud (passer le texte en minuscule)
-##Adjective noun pairs
 
