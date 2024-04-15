@@ -38,6 +38,7 @@ comm_booking <- comm_booking %>%
 ```
 
 ##Valeurs manquantes
+
 ```{r}
 # Compter le nombre de NA dans la colonne 'Contenu.positif'
 nombre_de_na1 <- sum(is.na(comm_booking$Contenu.positif))
@@ -49,8 +50,8 @@ print(nombre_de_na2)
 
 ```
 
-
 ##Types de voyageurs qui laissent des commentaires
+
 ```{r}
 # Filtrer les lignes où les commentaires positifs et négatifs sont simultanément vides
 comm_booking1 <- comm_booking %>%
@@ -77,7 +78,6 @@ ggplot(commentaires_par_type, aes(x = reorder(Type, -Pourcentage), y = Pourcenta
   coord_flip()  # Rend les étiquettes des pays plus lisibles
 
 ```
-
 
 ##D'où viennent les voyageurs qui laissent le plus de commentaires
 
@@ -109,6 +109,7 @@ ggplot(top_pays, aes(x = reorder(Pays, -Pourcentage), y = Pourcentage, fill = Pa
   labs(x = "Pays", y = "Pourcentage de Commentaires", title = "Pourcentage de Commentaires par Pays pour les 10 Pays Principaux") +
   coord_flip()  # Rend les étiquettes des pays plus lisibles
 ```
+
 ##Pourcentage de chaque type de voyageur, en permettant un zoom par pays
 
 ```{r}
@@ -147,25 +148,17 @@ data_pourcentage_plot <- data_pourcentage %>%
 plot_ly(data = data_pourcentage, x = ~Pays, y=~Pourcentage, type = "bar", color = ~Type)
 ```
 
-
-
-#Pretraitement de texte
-1. Mettre tous les mots en minuscule
-2. Enlever toutes la ponctuations
-3. Faire des n-gram (1,2 et 3)
-4. Faire une intersection entre les mots/listes de mots les plus utilisés selon les types
-5. Faire des clusters: quelles expressions sont les plus utilisées selon les types
-- ex: mots utilisés chez les couples - intersection avec les autres types de voyageurs
-
+#Pretraitement de texte 1. Mettre tous les mots en minuscule 2. Enlever toutes la ponctuations 3. Faire des n-gram (1,2 et 3) 4. Faire une intersection entre les mots/listes de mots les plus utilisés selon les types 5. Faire des clusters: quelles expressions sont les plus utilisées selon les types - ex: mots utilisés chez les couples - intersection avec les autres types de voyageurs
 
 *Nouveau data set pour la tokenisation*
+
 ```{r}
 # Créer un sous-ensemble de données avec seulement certaines colonnes
 subset_comments <- select(comm_booking, id, Contenu.positif, Contenu.négatif)
 ```
 
-##Tokenisation 1-gram sans les stopwords
-*Contenu négatif*
+##Tokenisation 1-gram sans les stopwords *Contenu négatif*
+
 ```{r}
 library(tidytext)
 library(tm)
@@ -185,6 +178,7 @@ tokens_negatif <- tokens_negatif %>%
 ```
 
 *Contenu positif*
+
 ```{r}
 tokens_positif <- subset_comments%>%
   unnest_tokens(word, Contenu.positif, token="words")
@@ -196,8 +190,10 @@ tokens_positif <- tokens_positif %>%
   filter(!word %in% french_stopwords)
 ```
 
-##2-gram
+##2-gram 
+
 *Contenu négatif*
+
 ```{r}
 #bigram negatif
 bigram_negatif <- subset_comments %>%
@@ -223,6 +219,7 @@ print(count_negatif_bigram)
 ```
 
 *Contenu positif*
+
 ```{r}
 #bigram positif
 bigram_positif <- subset_comments %>%
@@ -247,9 +244,10 @@ count_positif_bigram <- bigram_positif%>%
 print(count_positif_bigram)
 ```
 
+##3-gram 
 
-##3-gram
 *Contenu négatif*
+
 ```{r}
 #trigram negatif
 trigram_negatif <- subset_comments %>%
@@ -276,6 +274,7 @@ print(count_negatif_trigram)
 ```
 
 *Contenu positif*
+
 ```{r}
 #trigram positif
 trigram_positif <- subset_comments %>%
@@ -300,8 +299,10 @@ count_positif_trigram <- trigram_positif %>%
 print(count_positif_trigram)
 ```
 
-##4-gram
+##4-gram 
+
 *Contenu négatif*
+
 ```{r}
 fourgram_negatif <- subset_comments %>%
   unnest_tokens(fourgram, Contenu.négatif, token = "ngrams", n=4)
@@ -326,6 +327,7 @@ print(count_negatif_fourgram)
 ```
 
 *Contenu positif*
+
 ```{r}
 fourgram_positif <- subset_comments %>%
   unnest_tokens(fourgram, Contenu.positif, token = "ngrams", n=4)
@@ -352,6 +354,7 @@ print(count_positif_fourgram)
 #Supprimer les faux commentaires négatifs
 
 Code pour nettoyer la ponctuation et normaliser les espaces:
+
 ```{r}
 # Nettoyer la ponctuation et normaliser les espaces
 comm_booking <- comm_booking %>%
@@ -384,32 +387,125 @@ comm_booking <- comm_booking %>%
 ```
 
 *Supprimer les "tout va bien"*
+
 ```{r}
 
 ```
 
 ##Travailler sur le dataset complet avec les 3-gram
 
-On remarque qu'il est plus pertinent de travailler avec des 3-gram pour les contenu des colonnes de commentaires.
+On remarque qu'il est plus pertinent de travailler avec des 3-gram pour le contenu des colonnes de commentaires.
+
+*Contenu positif*
 
 ```{r}
-#créer des trigrammes à partir des colonnes de texte
-comm_booking_trigrams <- comm_booking %>%
+# Création des trigrammes à partir des colonnes de texte
+#Transformation de la colonne Contenu.positif en trigramm 
+#Separation de mots pour supprimer les stopwords
+#Rassemblement des mots en trigram 
+comm_booking_trigrams_positif <- comm_booking %>%
   unnest_tokens(output = trigram, input = Contenu.positif, token = "ngrams", n = 3) %>%
-  bind_rows(comm_booking %>%
-            unnest_tokens(output = trigram, input = Contenu.négatif, token = "ngrams", n = 3))
+  separate(trigram, into = c("word1", "word2", "word3"), sep = " ", extra = "merge") %>%
+  filter(!word1 %in% french_stopwords & !word2 %in% french_stopwords & !word3 %in% french_stopwords) %>%
+  unite(trigram, word1, word2, word3, sep = " ")
 
 ```
 
+Fréquence des trigrammes par type de client:
+
 ```{r}
 #Calculez la fréquence des trigrammes par type de client.
-trigram_freq_by_type <- comm_booking_trigrams %>%
+trigram_freq_by_type_positif <- comm_booking_trigrams_positif %>%
   count(Type, trigram, sort = TRUE) %>%
   group_by(Type) %>%
   mutate(freq = n / sum(n))
 
 # Pour identifier les trigrammes distinctifs, comparez la fréquence relative des trigrammes dans chaque groupe
-distinctive_trigrams <- trigram_freq_by_type %>%
+distinctive_trigrams_positif <- trigram_freq_by_type_positif %>%
+  group_by(trigram) %>%
+  filter(n() > 1) %>%
+  mutate(max_freq = max(freq),
+         is_distinctive = freq == max_freq) %>%
+  filter(is_distinctive) %>%
+  ungroup() %>%
+  arrange(desc(freq))
+
+# Sélectionner les 10 trigrammes les plus utilisés par type de client
+top_trigrams_per_type_positif <- distinctive_trigrams_positif %>%
+  group_by(Type) %>%
+  slice_max(order_by = freq, n = 10) %>%
+  ungroup()
+
+# Visualiser les résultats
+ggplot(top_trigrams_per_type_positif, aes(x = reorder(trigram, freq), y = freq, fill = Type)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ Type, scales = "free") +
+  coord_flip() +
+  labs(x = "Trigram", y = "Relative Frequency", title = "Top 10 Distinctive Trigrams by Client Type") +
+  theme_minimal()
+
+```
+
+
+
+*Contenu négatif*
+
+```{r}
+# Création des trigrammes à partir des colonnes de texte
+comm_booking_trigrams_negatif <- comm_booking %>%
+  unnest_tokens(output = trigram, input = Contenu.négatif, token = "ngrams", n = 3) %>%
+  separate(trigram, into = c("word1", "word2", "word3"), sep = " ", extra = "merge") %>%
+  filter(!word1 %in% french_stopwords & !word2 %in% french_stopwords & !word3 %in% french_stopwords) %>%
+  unite(trigram, word1, word2, word3, sep = " ")
+```
+
+
+Fréquence des trigrammes par type de client:
+
+```{r}
+#Calculez la fréquence des trigrammes par type de client.
+trigram_freq_by_type_negatif <- comm_booking_trigrams_negatif %>%
+  count(Type, trigram, sort = TRUE) %>%
+  group_by(Type) %>%
+  mutate(freq = n / sum(n))
+
+# Pour identifier les trigrammes distinctifs, comparez la fréquence relative des trigrammes dans chaque groupe
+distinctive_trigrams_negatif <- trigram_freq_by_type_negatif %>%
+  group_by(trigram) %>%
+  filter(n() > 1) %>%
+  mutate(max_freq = max(freq),
+         is_distinctive = freq == max_freq) %>%
+  filter(is_distinctive) %>%
+  ungroup() %>%
+  arrange(desc(freq))
+
+# Sélectionner les 10 trigrammes les plus utilisés par type de client
+top_trigrams_per_type_negatif <- distinctive_trigrams_negatif %>%
+  group_by(Type) %>%
+  slice_max(order_by = freq, n = 10) %>%
+  ungroup()
+
+# Visualiser les résultats
+ggplot(top_trigrams_per_type_negatif, aes(x = reorder(trigram, freq), y = freq, fill = Type)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ Type, scales = "free") +
+  coord_flip() +
+  labs(x = "Trigram", y = "Relative Frequency", title = "Top 10 Distinctive Trigrams by Client Type") +
+  theme_minimal()
+
+```
+peut-être mettre les verbes a l'infinitif
+
+Fréquence de trigrammes par pays d'origine: (pas significatif)
+```{r, eval=FALSE}
+#Calculez la fréquence des trigrammes par type de client.
+trigram_freq_by_pays <- comm_booking_trigrams %>%
+  count(Pays, trigram, sort = TRUE) %>%
+  group_by(Pays) %>%
+  mutate(freq = n / sum(n))
+
+# Pour identifier les trigrammes distinctifs, comparez la fréquence relative des trigrammes dans chaque groupe
+distinctive_trigrams2 <- trigram_freq_by_pays %>%
   group_by(trigram) %>%
   filter(n() > 1) %>%
   mutate(max_freq = max(freq),
@@ -420,11 +516,9 @@ distinctive_trigrams <- trigram_freq_by_type %>%
 
 ```
 
-
 ###Quel vocabulaire est utilisé par quel type de clientèle
 
- 
-##Tag Cloud 
+##Tag Cloud
 
 ##Adjective noun pairs (prend bcp de temps)
 
@@ -461,5 +555,3 @@ adj_noun_pairs <- tagged_df %>%
   select(adj = lemma, noun = next_word)
 
 ```
-
-
