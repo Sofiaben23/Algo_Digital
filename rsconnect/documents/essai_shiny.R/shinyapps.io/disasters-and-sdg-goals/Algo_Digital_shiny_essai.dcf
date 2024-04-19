@@ -1,12 +1,12 @@
-name: Algo_Digital
-title: Algo_Digital
+name: Algo_Digital_shiny_essai
+title: Algo_Digital_shiny_essai
 username: disasters-and-sdg-goals
 account: disasters-and-sdg-goals
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
-appId: 11807757
-bundleId: 8514883
-url: https://disasters-and-sdg-goals.shinyapps.io/Algo_Digital/
+appId: 11807836
+bundleId: 8514925
+url: https://disasters-and-sdg-goals.shinyapps.io/Algo_Digital_shiny_essai/
 version: 1
 asMultiple: FALSE
 asStatic: FALSE

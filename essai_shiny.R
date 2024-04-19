@@ -7,7 +7,7 @@ library(lubridate)  # Load lubridate for date manipulation
 # Use here to construct paths
 library(here)
 
-processed_data <- read_delim("C:/Users/twins/Desktop/Dossier Sofia/Master BA/P24/Algo digital marketing/Projet/2024.03 Data Booking.com VD processed joint.csv", 
+processed_data <- read_delim("C:/Users/twins/Desktop/Algo Digital/Algo_Digital/2024.03 Data Booking.com VD processed joint.csv", 
                              delim = ";", trim_ws = TRUE)
 
 # Convert Date column to Date format
@@ -33,25 +33,25 @@ server <- function(input, output) {
     # Adjusting the filtering logic to accommodate multiple selections
     filtered_data <- processed_data
     
-    if("All" %in% input$typeSelect  length(input$typeSelect) == 0) {
+    if("All" %in% input$typeSelect || length(input$typeSelect) == 0) {
       filtered_data <- processed_data
     } else {
       filtered_data <- processed_data %>% filter(Type %in% input$typeSelect)
     }
     
-    if ("All" %in% input$destinationSelect  length(input$destinationSelect) == 0) {
+    if ("All" %in% input$destinationSelect || length(input$destinationSelect) == 0) {
       # Do nothing, keep all destinations
     } else {
       filtered_data <- filtered_data %>% filter(Destination %in% input$destinationSelect)
     }
     
-    if ("All" %in% input$PaysSelect  length(input$PaysSelect) == 0) {
+    if ("All" %in% input$PaysSelect || length(input$PaysSelect) == 0) {
       # Do nothing, keep all countries
     } else {
       filtered_data <- filtered_data %>% filter(Pays %in% input$PaysSelect)
     }
     
-    if ("All" %in% input$yearSelect  length(input$yearSelect) == 0) {
+    if ("All" %in% input$yearSelect || length(input$yearSelect) == 0) {
       # Do nothing, keep all years
     } else {
       filtered_data <- filtered_data %>% filter(Year == input$yearSelect)
