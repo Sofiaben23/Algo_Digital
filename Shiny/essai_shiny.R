@@ -6,7 +6,7 @@ library(lubridate)  # Load lubridate for date manipulation
 
 # Use here to construct paths
 
-processed_data <- read_delim("C:/Users/twins/Desktop/Algo Digital/Algo_Digital/2024.03 Data Booking.com VD processed joint.csv", 
+processed_data <- read_delim("../Data/2024.03 Data Booking.com VD processed joint.csv", 
                              delim = ";", trim_ws = TRUE)
 
 # Convert Date column to Date format
