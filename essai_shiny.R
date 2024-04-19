@@ -5,7 +5,6 @@ library(readr)
 library(lubridate)  # Load lubridate for date manipulation
 
 # Use here to construct paths
-library(here)
 
 processed_data <- read_delim("C:/Users/twins/Desktop/Algo Digital/Algo_Digital/2024.03 Data Booking.com VD processed joint.csv", 
                              delim = ";", trim_ws = TRUE)
