@@ -1,0 +1,13 @@
+name: Algo_Digital
+title: Algo_Digital
+username: disasters-and-sdg-goals
+account: disasters-and-sdg-goals
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 11807757
+bundleId: 8514849
+url: https://disasters-and-sdg-goals.shinyapps.io/Algo_Digital/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: Booking VD traduit.xlsx|desktop.ini|Nuitées hôtelières - janvier 2021 janvier 2024.csv|Sofia partie.qmd|Vaud+ Commentaires traduits.qmd
