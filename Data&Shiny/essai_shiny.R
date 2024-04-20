@@ -5,8 +5,12 @@ library(readr)
 library(lubridate)  # Load lubridate for date manipulation
 
 
+<<<<<<< HEAD
 # Read the CSV file
 processed_data <- read_delim("../2024.03_Data_Booking.com_VD_processed_joint.csv", 
+=======
+processed_data <- read_delim("./2024.03_Data_Booking.com_VD_processed_joint.csv", 
+>>>>>>> 37e3cb725322c11329719f0ca73c09375598685b
                              delim = ";", trim_ws = TRUE)
 
 # Convert Date column to Date format
