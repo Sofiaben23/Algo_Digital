@@ -4,8 +4,8 @@ library(plotly)
 library(readr)
 library(lubridate)  # Load lubridate for date manipulation
 
-# Use here to construct paths
 
+# Read the CSV file
 processed_data <- read_delim("../2024.03_Data_Booking.com_VD_processed_joint.csv", 
                              delim = ";", trim_ws = TRUE)
 
