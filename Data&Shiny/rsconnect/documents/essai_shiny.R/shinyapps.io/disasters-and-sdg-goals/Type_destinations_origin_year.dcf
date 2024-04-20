@@ -1,0 +1,13 @@
+name: Type_destinations_origin_year
+title: Type_destinations_origin_year
+username: disasters-and-sdg-goals
+account: disasters-and-sdg-goals
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 11814982
+bundleId: 8518343
+url: https://disasters-and-sdg-goals.shinyapps.io/Type_destinations_origin_year/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: Booking VD traduit.xlsx|Nuitées hôtelières - janvier 2021 janvier 2024.csv
