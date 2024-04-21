@@ -1,0 +1,88 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+### Load packages
+
+```{r}
+#packages
+devtools::install_github("timelyportfolio/d3treeR")
+
+library(shiny)
+library(dplyr)
+library(treemap)
+library(d3treeR)
+library(readr)
+library(plotly)
+library(lubridate)  # Ensure lubridate is installed for date manipulation
+
+```
+
+### Load the data and a bit of cleaning
+
+#### First check a few things of the path, to create a relative path :
+
+```{r}
+parent_directory <- dirname(getwd())
+print(parent_directory)
+file.exists(here("./Data&Shiny/2024.03_Data_Booking.com_VD_processed_joint.csv"))
+```
+
+```{r}
+# Load the data
+processed_data <- read_delim("./Data&Shiny/2024.03_Data_Booking.com_VD_processed_joint.csv", 
+                             delim = ";", trim_ws = TRUE)
+# Prepare the data
+processed_data$Date <- dmy(processed_data$Date)
+processed_data <- processed_data %>%
+  mutate(
+    Year = year(Date),
+    Month = month(Date, label = TRUE, abbr = FALSE)  # Month as full name
+  )
+```
+
+### Calculate top countries
+
+```{r}
+# Calculate top countries
+get_top_countries <- function(data, N = 10) {
+  data %>%
+    group_by(Pays) %>%
+    summarise(Count = n(), .groups = 'drop') %>%
+    top_n(N, Count) %>%
+    pull(Pays)
+}
+top_countries <- get_top_countries(processed_data)
+```
+
+### Distribution of destinations based on selected filters
+
+```{r}
+htmltools::tags$iframe(src="https://melanycarrillo.shinyapps.io/Distribution_of_destinations_based_on_selected_filters/
+", height="600", width="100%")
+```
+
+### Monthly hotel rating by etoiles or type year and destination
+
+```{r}
+htmltools::tags$iframe(src="https://melanycarrillo.shinyapps.io/monthly_hotel_rating_by_etoiles_or_type_year_and_destination/
+", height="600", width="100%")
+```
+
+```{r}
+htmltools::tags$iframe(src="https://melanycarrillo.shinyapps.io/Treemap_top_countries_VS_without/
+", height="600", width="100%")
+```
+
+#### Ou alors copiez directement les liens sur une barre de recherche (surtout pour le treemap) :
+
+```{r}
+https://melanycarrillo.shinyapps.io/Distribution_of_destinations_based_on_selected_filters/
+
+https://melanycarrillo.shinyapps.io/monthly_hotel_rating_by_etoiles_or_type_year_and_destination/
+  
+https://melanycarrillo.shinyapps.io/Treemap_top_countries_VS_without/
+  
+```
