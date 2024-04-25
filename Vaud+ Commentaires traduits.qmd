@@ -190,7 +190,7 @@ tokens_positif <- tokens_positif %>%
   filter(!word %in% french_stopwords)
 ```
 
-##2-gram
+##2-gram 
 
 *Contenu négatif*
 
@@ -244,7 +244,7 @@ count_positif_bigram <- bigram_positif%>%
 print(count_positif_bigram)
 ```
 
-##3-gram
+##3-gram 
 
 *Contenu négatif*
 
@@ -299,7 +299,7 @@ count_positif_trigram <- trigram_positif %>%
 print(count_positif_trigram)
 ```
 
-##4-gram
+##4-gram 
 
 *Contenu négatif*
 
@@ -441,10 +441,12 @@ ggplot(top_trigrams_per_type_positif, aes(x = reorder(trigram, freq), y = freq, 
   geom_col(show.legend = FALSE) +
   facet_wrap(~ Type, scales = "free") +
   coord_flip() +
-  labs(x = "Trigram", y = "Relative Frequency", title = "Top 10 Distinctive Positive Trigrams by Client Type") +
+  labs(x = "Trigram", y = "Relative Frequency", title = "Top 10 Distinctive Trigrams by Client Type") +
   theme_minimal()
 
 ```
+
+
 
 *Contenu négatif*
 
@@ -456,6 +458,7 @@ comm_booking_trigrams_negatif <- comm_booking %>%
   filter(!word1 %in% french_stopwords & !word2 %in% french_stopwords & !word3 %in% french_stopwords) %>%
   unite(trigram, word1, word2, word3, sep = " ")
 ```
+
 
 Fréquence des trigrammes par type de client:
 
@@ -491,11 +494,9 @@ ggplot(top_trigrams_per_type_negatif, aes(x = reorder(trigram, freq), y = freq, 
   theme_minimal()
 
 ```
-
 peut-être mettre les verbes a l'infinitif
 
 Fréquence de trigrammes par pays d'origine: (pas significatif)
-
 ```{r, eval=FALSE}
 #Calculez la fréquence des trigrammes par type de client.
 trigram_freq_by_pays <- comm_booking_trigrams %>%
@@ -519,38 +520,6 @@ distinctive_trigrams2 <- trigram_freq_by_pays %>%
 
 ##Tag Cloud
 
-##Adjective noun pairs (prend bcp de temps)
 
-```{r}
-library(udpipe)
-```
 
-```{r}
-# Télécharger un modèle de langue française (ou une autre langue appropriée)
-model <- udpipe_download_model(language = "french")
 
-# Charger le modèle
-ud_model <- udpipe_load_model(model$file_model)
-
-# Préparer vos données (exemple ici avec 'Contenu.positif')
-text_data <- data.frame(text = as.character(comm_booking$Contenu.positif), stringsAsFactors = FALSE)
-```
-
-```{r}
-# Appliquer le POS tagging
-tagged_text <- udpipe_annotate(ud_model, x = text_data$text)
-tagged_df <- as.data.frame(tagged_text)
-
-```
-
-```{r}
-# Filtrer les adjectifs et les noms, et les lier
-adj_noun_pairs <- tagged_df %>%
-  filter(upos %in% c("ADJ", "NOUN")) %>%
-  group_by(doc_id, paragraph_id, sentence_id) %>%
-  arrange(doc_id, paragraph_id, sentence_id, token_id) %>%
-  mutate(next_word = lead(lemma), next_pos = lead(upos)) %>%
-  filter(upos == "ADJ" & next_pos == "NOUN") %>%
-  select(adj = lemma, noun = next_word)
-
-```
