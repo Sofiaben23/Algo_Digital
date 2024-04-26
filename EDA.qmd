@@ -1,0 +1,462 @@
+---
+title: "Testing models"
+format: html
+code-fold: true
+toc: true
+toc-depth: 3
+toc-float:
+  collapsed: true
+  smooth-scroll: true
+  toc-label: "Contents"
+toc-location: left
+editor: visual
+self-contained: true
+---
+
+```{r message=FALSE, warning=FALSE}
+#install.packages("readr")
+#install.packages("plotly")
+#install.packages("ggplot2")
+#install.packages("dplyr")
+#install.packages("readxl")
+#install.packages("tidyverse")
+#install.packages("lubridate")
+library(dplyr)
+library(readr)
+library(plotly)
+library(ggplot2)
+library(readxl)
+library(tidyverse)
+library(lubridate)
+```
+
+```{r message=FALSE, warning=FALSE}
+#Load dataset
+library(readxl)
+booking_data <- read_excel("~/Documents/Algorithm in BI and Digital marketing/Project/Data/Booking_data.xlsx")
+
+data_booking_1 <- read_delim("~/Documents/Algorithm in BI and Digital marketing/Project/Data/data_booking_1.csv", 
+    delim = ";", escape_double = FALSE, trim_ws = TRUE)
+
+#adding a year column
+# Convert 'Date' column to a Date object
+# Assuming the date format in your CSV is day.month.year (e.g., 01.09.2023)
+data_booking_1$Date <- dmy(data_booking_1$Date)
+
+# Extract the year from the 'Date' column and create a new 'Year' column
+data_booking_1$Year <- year(data_booking_1$Date)
+
+# Assuming 'data_booking_1' has a column 'Date' which contains dates from which you want to extract the month
+data_booking_1 <- data_booking_1 %>%
+  mutate(Month = month(Date, label = TRUE, abbr = FALSE))  # Extract month name from Date
+```
+
+# EDA
+
+## Oultiers, Boxplot, Missing values
+
+```{r message=FALSE, warning=FALSE}
+# 1. Identify missing values in each column
+missing_values_summary <- data_booking_1 %>%
+  summarise(across(everything(), ~sum(is.na(.))))
+
+# Print the summary of missing values
+print(missing_values_summary)
+
+# 2. Replace missing values with 'NA' or "Unknown"
+data_booking_1 <- data_booking_1 %>%
+  mutate(across(where(is.character), ~ifelse(is.na(.), "Unknown", .)), # Replace missing in character columns with "Unknown"
+         across(where(is.numeric), ~ifelse(is.na(.), NA_real_, .)))  # Replace missing in numeric columns with NA
+
+```
+
+## Hotel ratings distribution
+
+```{r message=FALSE, warning=FALSE}
+# Calculate the count of each destination for each year
+etoiles_counts_by_year <- data_booking_1 %>%
+  group_by(Year, Etoiles) %>%
+  summarise(Count = n(), .groups = 'drop') %>%
+  arrange(Year, desc(Count))
+
+# Create a unique color for each destination
+unique_etoiles <- unique(etoiles_counts_by_year$Etoiles)
+num_etoiles <- length(unique_etoiles)
+colors_palette <- setNames(rainbow(num_etoiles), unique_etoiles)
+
+# Plotting the distribution of destinations with consistent custom colors and order
+plot_etoiles <- plot_ly() %>%
+  add_bars(data = etoiles_counts_by_year, 
+           x = ~factor(Etoiles, levels = unique_etoiles), 
+           y = ~Count, 
+           frame = ~Year, 
+           ids = ~Etoiles,
+           hoverinfo = "x+y", # Configuration for hover information
+           marker = list(color = ~colors_palette[Etoiles])) %>%
+  layout(title = "Distribution of Etoiles by Year",
+         xaxis = list(title = "Etoiles"),
+         yaxis = list(title = "Count"),
+         showlegend = FALSE,
+         transitions = list(easing = "cubic-in-out", duration = 500),
+         updatemenus = list(
+           list(type = "buttons",
+                showactive = FALSE,
+                buttons = list(
+                  list(method = "animate",
+                       args = list(NULL,
+                                   list(frame = list(duration = 500, redraw = TRUE),
+                                        fromcurrent = TRUE,
+                                        mode = "immediate",
+                                        transition = list(duration = 500))),
+                       label = "Play"),
+                  list(method = "animate",
+                       args = list(list(),
+                                   list(frame = list(duration = 0, redraw = TRUE),
+                                        mode = "immediate",
+                                        transition = list(duration = 0))),
+                       label = "Pause")
+                )
+           )
+         ))
+
+# Display the plot
+plot_etoiles
+```
+
+## Countries distribution
+
+```{r message=FALSE, warning=FALSE}
+# Calculate the count of each country for each year
+country_counts_by_year <- data_booking_1 %>%
+  group_by(Year, Pays) %>%
+  summarise(Count = n(), .groups = 'drop') %>%
+  arrange(Year, desc(Count))
+
+# Create a unique color for each country
+unique_countries <- unique(country_counts_by_year$Pays)
+num_countries <- length(unique_countries)
+colors_palette <- setNames(rainbow(num_countries), unique_countries)
+
+# Plotting the distribution of countries with consistent custom colors and order
+plot_countries <- plot_ly() %>%
+  add_bars(data = country_counts_by_year, 
+           x = ~factor(Pays, levels = unique_countries), 
+           y = ~Count, 
+           frame = ~Year, 
+           ids = ~Pays,
+           hoverinfo = "x+y", # Configuration for hover information
+           marker = list(color = ~colors_palette[Pays])) %>%
+  layout(title = "Distribution of Countries by Year",
+         xaxis = list(title = "Country"),
+         yaxis = list(title = "Count"),
+         showlegend = FALSE,
+         transitions = list(easing = "cubic-in-out", duration = 500),
+         updatemenus = list(
+           list(type = "buttons",
+                showactive = FALSE,
+                buttons = list(
+                  list(method = "animate",
+                       args = list(NULL,
+                                   list(frame = list(duration = 500, redraw = TRUE),
+                                        fromcurrent = TRUE,
+                                        mode = "immediate",
+                                        transition = list(duration = 500))),
+                       label = "Play"),
+                  list(method = "animate",
+                       args = list(list(),
+                                   list(frame = list(duration = 0, redraw = TRUE),
+                                        mode = "immediate",
+                                        transition = list(duration = 0))),
+                       label = "Pause")
+                )
+           )
+         ))
+
+# Display the plot
+plot_countries
+```
+
+## Top 10 country presence
+
+```{r message=FALSE, warning=FALSE}
+# Function to get top N countries by count for each year
+get_top_countries <- function(data, N = 10) {
+  data %>%
+    group_by(Year, Pays) %>%
+    summarise(Count = n()) %>%
+    arrange(Year, desc(Count)) %>%
+    group_by(Year) %>%
+    top_n(N, Count) %>%
+    ungroup()
+}
+
+# Get top 10 countries for each year
+top_countries_by_year <- get_top_countries(data_booking_1, N = 10)
+
+# Create a unique color for each country
+unique_countries <- unique(top_countries_by_year$Pays)
+num_countries <- length(unique_countries)
+colors_palette <- setNames(rainbow(num_countries), unique_countries)
+
+# Plotting the distribution of countries with consistent custom colors and order
+plot_countries <- plot_ly() %>%
+  add_bars(data = top_countries_by_year, 
+           x = ~factor(Pays, levels = unique_countries), 
+           y = ~Count, 
+           frame = ~Year, 
+           ids = ~Pays,
+           hoverinfo = "x+y", # Configuration for hover information
+           marker = list(color = ~colors_palette[Pays])) %>%
+  layout(title = "Top 10 Countries by Year",
+         xaxis = list(title = "Country"),
+         yaxis = list(title = "Count"),
+         showlegend = FALSE,
+         transitions = list(easing = "cubic-in-out", duration = 500),
+         updatemenus = list(
+           list(type = "buttons",
+                showactive = FALSE,
+                buttons = list(
+                  list(method = "animate",
+                       args = list(NULL,
+                                   list(frame = list(duration = 500, redraw = TRUE),
+                                        fromcurrent = TRUE,
+                                        mode = "immediate",
+                                        transition = list(duration = 500))),
+                       label = "Play"),
+                  list(method = "animate",
+                       args = list(list(),
+                                   list(frame = list(duration = 0, redraw = TRUE),
+                                        mode = "immediate",
+                                        transition = list(duration = 0))),
+                       label = "Pause")
+                )
+           )
+         ))
+
+# Display the plot
+plot_countries
+
+```
+
+## Type of clients per year
+
+```{r message=FALSE, warning=FALSE}
+
+# Calculate the count of each type for each year
+type_counts_by_year <- data_booking_1 %>%
+  group_by(Year, Type) %>%
+  summarise(Count = n(), .groups = 'drop') %>%
+  arrange(Year, desc(Count))
+
+# Create a unique color for each type
+unique_types <- unique(type_counts_by_year$Type)
+num_types <- length(unique_types)
+colors_palette <- setNames(rainbow(num_types), unique_types)
+
+# Plotting the distribution of types with consistent custom colors and order
+plot_types <- plot_ly() %>%
+  add_bars(data = type_counts_by_year, 
+           x = ~factor(Type, levels = unique_types), 
+           y = ~Count, 
+           frame = ~Year, 
+           ids = ~Type,
+           hoverinfo = "x+y", # Configuration for hover information
+           marker = list(color = ~colors_palette[Type])) %>%
+  layout(title = "Types of clients per year",
+         xaxis = list(title = "Type"),
+         yaxis = list(title = "Count"),
+         showlegend = FALSE,
+         transitions = list(easing = "cubic-in-out", duration = 500),
+         updatemenus = list(
+           list(type = "buttons",
+                showactive = FALSE,
+                buttons = list(
+                  list(method = "animate",
+                       args = list(NULL,
+                                   list(frame = list(duration = 500, redraw = TRUE),
+                                        fromcurrent = TRUE,
+                                        mode = "immediate",
+                                        transition = list(duration = 500))),
+                       label = "Play"),
+                  list(method = "animate",
+                       args = list(list(),
+                                   list(frame = list(duration = 0, redraw = TRUE),
+                                        mode = "immediate",
+                                        transition = list(duration = 0))),
+                       label = "Pause")
+                )
+           )
+         ))
+
+# Display the plot
+plot_types
+
+```
+
+```{r}
+# Calculate the count of each type for each year and month
+type_counts_by_month <- data_booking_1 %>%
+  group_by(Year, Month, Type) %>%
+  summarise(Count = n(), .groups = 'drop') %>%
+  arrange(Year, Month, desc(Count))
+
+# Create a unique color for each type
+unique_types <- unique(type_counts_by_month$Type)
+num_types <- length(unique_types)
+# Subdued color palette
+colors_palette <- c("ivory3", "royalblue2","burlywood3", "chartreuse3")
+
+# Convert Month to factor with correct level order
+type_counts_by_month$Month <- factor(type_counts_by_month$Month, levels = month.name)
+
+# Plotting the distribution of types with consistent custom colors and order
+plot_types_month <- plot_ly() %>%
+  add_bars(data = type_counts_by_month, 
+           x = ~Month, 
+           y = ~Count, 
+           frame = ~Year, 
+           color = ~Type,
+           colors = colors_palette,
+           hoverinfo = "x+y+text", # Configuration for hover information
+           text = ~paste("Type: ", Type, "<br>Count: ", Count),
+           marker = list(line = list(width = 1))) %>%
+  layout(title = "Distribution of Types by Year and Month",
+         xaxis = list(title = "Month"),
+         yaxis = list(title = "Count"),
+         showlegend = TRUE,
+         barmode = "stack", # Stack bars for each month
+         transitions = list(easing = "cubic-in-out", duration = 500),
+         updatemenus = list(
+           list(type = "buttons",
+                showactive = FALSE,
+                buttons = list(
+                  list(method = "animate",
+                       args = list(NULL,
+                                   list(frame = list(duration = 500, redraw = TRUE),
+                                        fromcurrent = TRUE,
+                                        mode = "immediate",
+                                        transition = list(duration = 500))),
+                       label = "Play"),
+                  list(method = "animate",
+                       args = list(list(),
+                                   list(frame = list(duration = 0, redraw = TRUE),
+                                        mode = "immediate",
+                                        transition = list(duration = 0))),
+                       label = "Pause")
+                )
+           )
+         ))
+
+# Display the plot
+plot_types_month
+```
+
+## Distribution Destination by year
+
+```{r message=FALSE, warning=FALSE}
+
+# Calculate the count of each destination for each year
+destination_counts_by_year <- data_booking_1 %>%
+  group_by(Year, Destination) %>%
+  summarise(Count = n(), .groups = 'drop') %>%
+  arrange(Year, desc(Count))
+
+# Create a unique color for each destination
+unique_destinations <- unique(destination_counts_by_year$Destination)
+num_destinations <- length(unique_destinations)
+colors_palette <- setNames(rainbow(num_destinations), unique_destinations)
+
+# Plotting the distribution of destinations with consistent custom colors and order
+plot_destinations <- plot_ly() %>%
+  add_bars(data = destination_counts_by_year, 
+           x = ~factor(Destination, levels = unique_destinations), 
+           y = ~Count, 
+           frame = ~Year, 
+           ids = ~Destination,
+           hoverinfo = "x+y", # Configuration for hover information
+           marker = list(color = ~colors_palette[Destination])) %>%
+  layout(title = "Distribution of Destinations by Year",
+         xaxis = list(title = "Destination"),
+         yaxis = list(title = "Count"),
+         showlegend = FALSE,
+         transitions = list(easing = "cubic-in-out", duration = 500),
+         updatemenus = list(
+           list(type = "buttons",
+                showactive = FALSE,
+                buttons = list(
+                  list(method = "animate",
+                       args = list(NULL,
+                                   list(frame = list(duration = 500, redraw = TRUE),
+                                        fromcurrent = TRUE,
+                                        mode = "immediate",
+                                        transition = list(duration = 500))),
+                       label = "Play"),
+                  list(method = "animate",
+                       args = list(list(),
+                                   list(frame = list(duration = 0, redraw = TRUE),
+                                        mode = "immediate",
+                                        transition = list(duration = 0))),
+                       label = "Pause")
+                )
+           )
+         ))
+
+# Display the plot
+plot_destinations
+
+#Choisir top 5?
+```
+
+## Number of nights Distribution
+
+```{r message=FALSE, warning=FALSE}
+
+# Calculate the count of each nuit for each year
+nuits_counts_by_year <- data_booking_1 %>%
+  group_by(Year, Nuits) %>%
+  summarise(Count = n(), .groups = 'drop') %>%
+  arrange(Year, desc(Count))
+
+# Create a unique color for each nuit
+unique_nuits <- unique(nuits_counts_by_year$Nuits)
+num_nuits <- length(unique_nuits)
+colors_palette <- setNames(rainbow(num_nuits), unique_nuits)
+
+# Plotting the distribution of nuits with consistent custom colors and order
+plot_nuits <- plot_ly() %>%
+  add_bars(data = nuits_counts_by_year, 
+           x = ~factor(Nuits, levels = unique_nuits), 
+           y = ~Count, 
+           frame = ~Year, 
+           ids = ~Nuits,
+           hoverinfo = "x+y", # Configuration for hover information
+           marker = list(color = ~colors_palette[Nuits])) %>%
+  layout(title = "Distribution of Nights by Year",
+         xaxis = list(title = "Nuits"),
+         yaxis = list(title = "Count"),
+         showlegend = FALSE,
+         transitions = list(easing = "cubic-in-out", duration = 500),
+         updatemenus = list(
+           list(type = "buttons",
+                showactive = FALSE,
+                buttons = list(
+                  list(method = "animate",
+                       args = list(NULL,
+                                   list(frame = list(duration = 500, redraw = TRUE),
+                                        fromcurrent = TRUE,
+                                        mode = "immediate",
+                                        transition = list(duration = 500))),
+                       label = "Play"),
+                  list(method = "animate",
+                       args = list(list(),
+                                   list(frame = list(duration = 0, redraw = TRUE),
+                                        mode = "immediate",
+                                        transition = list(duration = 0))),
+                       label = "Pause")
+                )
+           )
+         ))
+
+# Display the plot
+plot_nuits
+```
