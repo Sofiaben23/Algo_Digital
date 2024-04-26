@@ -1,0 +1,13 @@
+name: monthly_hotel_rating_by_etoiles_type_year_and_destination
+title: monthly_hotel_rating_by_etoiles_type_year_and_destination
+username: melanycarrillo
+account: melanycarrillo
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 11867191
+bundleId: 8542634
+url: https://melanycarrillo.shinyapps.io/monthly_hotel_rating_by_etoiles_type_year_and_destination/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .RData|Data&Shiny/.RData|Data&Shiny/Booking VD traduit.xlsx|Data&Shiny/essai_shiny.R|Data&Shiny/Nuitées hôtelières - janvier 2021 janvier 2024.csv|desktop.ini|Distribution_of_destinations_based_on_selected_filters.R|Mel.qmd|rsconnect_Mel/documents_Mel/Distribution_of_destinations_based_on_selected_filters.R/shinyapps.io/melanycarrillo/Distribution_of_destinations_based_on_selected_filters.dcf|rsconnect_Mel/documents_Mel/monthly_hotel_rating_by_etoiles_or_type_year_and_destination.R/shinyapps.io/melanycarrillo/monthly_hotel_rating_by_etoiles_or_type_year_and_destination.dcf|rsconnect_Mel/documents_Mel/Treemap_top_countries_VS_without.R/shinyapps.io/melanycarrillo/Treemap_top_countries_VS_without.dcf|Sofia partie.qmd|Treemap_top_countries_VS_without.R|Vaud+ Commentaires traduits.qmd|Project_start_files
